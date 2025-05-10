@@ -1,0 +1,76 @@
+version: '3.8' # Specifies the Docker Compose file format version
+
+services:
+  # Frontend Service (React + Vite)
+  frontend:
+    build:
+      context: ./frontend/ui # Path to the directory containing the frontend Dockerfile
+      dockerfile: dockerfile # Name of the frontend Dockerfile
+    container_name: frontend_ui
+    ports:
+      - "5173:5173" # Maps host port 5173 to container port 5173 (Vite default)
+    volumes:
+      # Mounts the local frontend source code into the container for live reloading
+      # Any changes in ./frontend/src will be reflected in /ui/src in the container
+      - ./frontend:/ui
+      # You might want to exclude node_modules from being overwritten by the host's version
+      # if it causes issues, though for Vite it's usually fine.
+      - /ui/node_modules # Anonymous volume to persist node_modules from the image
+    environment:
+      # Environment variables for the frontend, if any
+      # Example:
+      # - VITE_API_BASE_URL=http://localhost:8000/api 
+      - WATCHPACK_POLLING=true # Often helps with hot-reloading in Docker on some systems
+    # If your frontend needs to wait for the backend (e.g., for API calls during build/startup)
+    # depends_on:
+    #   - backend
+    restart: unless-stopped
+
+  # Backend Service (Django)
+  backend:
+    build:
+      context: ./backend # Path to the directory containing the backend Dockerfile
+      dockerfile: dockerfile # Name of the backend Dockerfile (as per your existing one)
+    container_name: backend_api
+    ports:
+      - "8000:8000" # Maps host port 8000 to container port 8000 (Django default)
+    volumes:
+      # Mounts the local backend 'gmaps' app code into the container for live reloading
+      # This assumes your Django app code (manage.py, etc.) is inside backend/gmaps/
+      # and your Dockerfile's WORKDIR is /gmaps and COPY ./gmaps/ /gmaps/
+      - ./backend/gmaps:/gmaps 
+      # If you have other directories at the root of your Django project (e.g. a project-level settings folder)
+      # that are copied into /gmaps by your Dockerfile, you might need separate mounts or adjust the above.
+      # For example, if manage.py is in backend/ and your app is backend/gmaps_app:
+      # - ./backend:/gmaps # Mounts the entire backend directory
+    environment:
+      # Environment variables for the backend
+      # Example:
+      # - DEBUG=1
+      # - SECRET_KEY=your_very_secret_django_key
+      # - DATABASE_URL=postgres://user:pass@db_host:5432/dbname
+      - PYTHONDONTWRITEBYTECODE=1 # Already in your Dockerfile, but can be here too
+      - PYTHONUNBUFFERED=1      # Already in your Dockerfile
+    # If you add a database service, you would add:
+    # depends_on:
+    #   - db # Example if you have a 'db' service defined
+    restart: unless-stopped
+
+# Example for a PostgreSQL database service (optional)
+# volumes:
+#   postgres_data:
+
+# services:
+#   ... your frontend and backend services ...
+#   db:
+#     image: postgres:15-alpine
+#     container_name: postgres_db
+#     volumes:
+#       - postgres_data:/var/lib/postgresql/data/
+#     environment:
+#       - POSTGRES_USER=youruser
+#       - POSTGRES_PASSWORD=yourpassword
+#       - POSTGRES_DB=yourdbname
+#     ports:
+#       - "5432:5432"
+#     restart: unless-stopped

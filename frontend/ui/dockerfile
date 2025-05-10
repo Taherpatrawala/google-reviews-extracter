@@ -1,0 +1,41 @@
+# Dockerfile for React + TypeScript + Vite Frontend (Development Server)
+
+# Use an official Node.js runtime as a parent image
+# Choose a version compatible with your project (e.g., lts, 18, 20)
+FROM node:20-alpine
+
+# Set the working directory in the container
+WORKDIR /ui
+
+# Copy package.json and package-lock.json (or yarn.lock / pnpm-lock.yaml)
+# This helps leverage Docker's layer caching.
+COPY package.json ./
+# If you use yarn:
+# COPY yarn.lock ./
+# If you use pnpm:
+# COPY pnpm-lock.yaml ./
+
+# Install project dependencies
+# If you use npm:
+RUN npm install
+# If you use yarn:
+# RUN yarn install
+# If you use pnpm:
+# RUN npm install -g pnpm && pnpm install --shamefully-hoist # --shamefully-hoist can help with some Vite setups in Docker
+
+# Copy the rest of your frontend application code
+# This will be overridden by the volume mount in docker-compose for development,
+# but it's good practice to include it for building the image standalone if needed.
+COPY . .
+
+# Expose the default Vite development server port
+EXPOSE 5173
+
+# Command to run the Vite development server
+# This usually comes from your package.json scripts (e.g., "dev": "vite")
+# The '--host' flag is important to make the server accessible from outside the container.
+CMD ["npm", "run", "dev", "--", "--host"]
+# If you use yarn:
+# CMD ["yarn", "dev", "--host"]
+# If you use pnpm:
+# CMD ["pnpm", "dev", "--host"]

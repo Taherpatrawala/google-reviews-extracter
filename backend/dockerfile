@@ -1,0 +1,71 @@
+# Dockerfile for Django Backend
+
+# Use an official Python runtime as a parent image
+# Choose a version compatible with your Django project (e.g., 3.9, 3.10, 3.11)
+FROM python:3.11-slim
+
+# Set environment variables
+# Prevents Python from writing .pyc files
+ENV PYTHONDONTWRITEBYTECODE 1
+# Ensures Python output is sent straight to the terminal
+ENV PYTHONUNBUFFERED 1
+
+# Set the working directory in the container
+WORKDIR /gmaps
+
+# Install system dependencies
+# These are for installing Google Chrome and its dependencies.
+# It's good to do this before installing Python requirements if any Python packages
+# might have system-level dependencies that overlap or are provided by Chrome's installation.
+RUN apt-get update && apt-get install -y \
+    wget \
+    gnupg \
+    # Add any other general system dependencies your project might need here
+    # For example, if you need psycopg2 for PostgreSQL, you might need:
+    # gcc libpq-dev
+    # Or for MySQL:
+    # default-libmysqlclient-dev gcc
+    && rm -rf /var/lib/apt/lists/*
+
+# Add Google Chrome's official PPA and install Google Chrome stable
+RUN wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | apt-key add - \
+    && sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list' \
+    && apt-get update \
+    && apt-get install -y \
+    google-chrome-stable \
+    fontconfig \
+    fonts-ipafont-gothic \
+    fonts-wqy-zenhei \
+    fonts-thai-tlwg \
+    fonts-kacst \
+    fonts-freefont-ttf \
+    # --no-install-recommends # Optional: to reduce image size further if you are sure about dependencies
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy the requirements file into the container
+# This assumes requirements.txt is in the same directory as this Dockerfile (i.e., backend/requirements.txt)
+COPY requirements.txt .
+
+# If your requirements.txt is in the project root (one level up from backend/):
+# COPY ../requirements.txt .
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy the rest of your backend application code into the container
+# This assumes your Django project named 'gmaps' is in a subdirectory 'gmaps'
+# relative to where this Dockerfile is.
+# If your project code (manage.py, your Django app folders) is in the same directory as the Dockerfile,
+# you might use: COPY . /gmaps/
+COPY ./gmaps/ /gmaps/
+
+# Expose the port your Django application runs on (default is 8000)
+EXPOSE 8000
+
+# Command to run your Django application
+# For development, using the development server:
+CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+
+# For production, you would typically use a production-grade WSGI server like Gunicorn:
+# CMD ["gunicorn", "--bind", "0.0.0.0:8000", "your_django_project.wsgi:application"]
+# Replace 'your_django_project' with the actual name of your Django project directory (where wsgi.py is).
