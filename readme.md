@@ -81,8 +81,6 @@ Follow these steps to set up the backend:
 
 ## Frontend (React + TypeScript) Setup
 
-I noticed that foundr.ai uses Neo Brutalism UI style, which just happens to be my new favourite UI design as well, so I thought to make this project’s UI using a similar style.
-
 Open a **new terminal** and follow the steps below:
 
 1. **Navigate to the frontend directory:**
